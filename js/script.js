@@ -11,19 +11,52 @@ let countIntervalSec = 0;
 let countWave = 0;
 let wave = [
    {
-       assasin: 3,
-       knight: 4
+       assasin: 6,
+       knight: 3
    }, 
    {}, {}, {}, {}
 ];
 let playerName = 'Larisa';
 let msg = 'save the kingdom!';
+let g = new Image(); //ground
+    g.src = 'Sprites/grass_tile_2.png';
+ let   r = new Image(); //road
+    r.src = 'Sprites/sand_tile.png';
+ let   o = new Image(); //obstacle
+    o.src = 'img/48.png';
+const map = [
+    [g,g,g,g,g,g,o,o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,o,o,g,g,g,g,g,g,g,g,g,o,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g],
+    [g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,r,r,r,r,g,g,g,g,g,g],
+    [g,g,g,g,g,g,g,r,g,g,g,g,g,g,g,g,g,g,r,g,g,g,g,g,g],
+    [g,g,g,g,g,g,g,r,r,r,r,g,g,g,o,g,g,g,r,g,g,g,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,r,g,g,g,g,o,o,g,r,g,g,g,g,g,g],
+    [r,r,r,r,r,r,r,r,r,r,r,g,g,g,g,o,o,g,r,g,g,r,r,r,r],
+    [g,g,g,g,g,o,o,g,g,g,g,g,g,g,g,g,g,g,r,g,g,r,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,g,g,r,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,g,g,g,g,r,g,g,g,g,g,g,r,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,g,g,g,g,r,g,g,g,g,g,g,r,g,g,g],
+    [g,g,g,g,g,g,o,o,o,g,g,g,g,g,r,r,r,r,r,r,r,r,g,g,g],
+    [g,g,g,g,g,g,g,g,g,o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g],
+    [g,g,g,g,g,g,g,g,g,g,g,o,g,o,g,g,g,g,g,g,g,g,g,g,g]
+]
 
+function drawMap() {
+    let countRowTile = 25,
+        countColumnTile  = 15;
+    for (let i = 0; i < countColumnTile ; i++) {
+        for (let j = 0; j < countRowTile; j++) {
+            let tile = map[i][j];
+            ctx.drawImage(tile, halfBlockSize + blockSize * j, halfBlockSize + blockSize * i, blockSize, blockSize);
+        }
+    }
+}
 //Field size
-const width = window.innerWidth,
-      blockSize = width / 36,
+const width = Math.floor(window.innerWidth),
+      blockSize = Math.floor(width / 36),
       height = blockSize * 16,
-      halfBlockSize = blockSize/2,
+      halfBlockSize = Math.floor(blockSize/2),
       widthField = width - blockSize,
       heightField = height - halfBlockSize,
       widthPlay = blockSize * 25;
@@ -199,7 +232,7 @@ function getEvent() {
         } else if( e.offsetX < paramXFirst + towerSize*8 && e.offsetX > paramXFirst && (e.offsetY > paramYTower && e.offsetY < paramYTower + towerSize ||  e.offsetY > paramYCatapult && e.offsetY < paramYCatapult + towerSize || e.offsetY > paramYMagic && e.offsetY < paramYMagic + towerSize)) {
             msg = 'select location';
             stop();
-            drawGrid();
+            // drawGrid();
             if(e.offsetY > paramYTower && e.offsetY < paramYTower + towerSize) {
                 showTowerParams(0, paramYTower)
                 towerInd = 0
@@ -230,6 +263,10 @@ function putTower(e) {
 
 let enemies = [];
 let towers = [];
+let left = {x: -1, y: 0};
+let right = {x: Math.floor(1), y: 0};
+let up = {x: 0, y: -1};
+let down = {x: 0, y: 1};
 
 //Enemies
 class Enemy {
@@ -243,17 +280,53 @@ class Enemy {
         this.speed = speed,
         this.hp = hp,
         this.armor = armor;
-        this.visible = true;
+        this.visible = true,
+        this.direction = right
     }
     Move() {
-        this.x += this.speed;
-    }
+        for (let counter = 0; counter < this.speed; counter ++){
+            let mapX = Math.floor((this.x - ((this.x - halfBlockSize)) % blockSize) / blockSize) //find cell's number in map array
+            let mapXRemainder =  ((this.x - halfBlockSize) % blockSize);
+            let mapY = Math.floor((this.y - ((this.y - halfBlockSize)) % blockSize) / blockSize)
+            let mapYRemainder =  ((this.y - halfBlockSize) % blockSize);
+            if(this.direction == right && map[mapY][mapX + 1] != r) {
+                if (map[mapY - 1][mapX] != r) {
+                    this.direction = down
+                } else {
+                    this.direction = up
+                } 
+            }
+                if(this.direction == left && mapXRemainder == 0 && map[mapY][mapX - 1] != r  ) {
+                    if (map[mapY - 1][mapX] != r) {
+                        this.direction = down
+                    } else {
+                        this.direction = up
+                    } 
+                }
+                if(this.direction == up &&mapYRemainder == 0 && map[mapY - 1][mapX] != r  ) {
+                    if (map[mapY][mapX - 1] != r) {
+                        this.direction = right
+                    } else {
+                        this.direction = left
+                    }
+                }
+                if(this.direction == down && map[mapY + 1][mapX] != r ) {
+                    if (map[mapY][mapX - 1] != r) {
+                        this.direction = right
+                    } else {
+                        this.direction = left
+                    } 
+                }
+                this.x += this.direction.x
+                this.y += this.direction.y
+    }}
     Update() {
         if (this.hp <= 0) {
             this.visible = false
         }
-        if (this.x + this.width - blockSize / 2 >= widthPlay - blockSize) {
-            stop('Game over!')
+        if (this.x + this.width - halfBlockSize >= widthPlay - blockSize) {
+            msg = 'game over!'
+            stop();
         };
     }
     Draw() {
@@ -265,25 +338,26 @@ class Enemy {
         this.hp -= damage; 
         if (this.hp <= 0) {
             this.hp = 0
+            this.x = 0
         }
     }
 }
 enemies = [
     {   
         name: 'assasin',
-        y: startRoadY - 10,
-        width: heightRoad,
-        height: heightRoad,
-        speed: 4,
+        y: startRoadY,
+        width: blockSize,
+        height: blockSize,
+        speed: 1,
         hp: 5000,
         armor: 1
     },
     {
         name: 'knight',
-        y: startRoadY - 10,
-        width: heightRoad,
-        height: heightRoad,
-        speed: 3,
+        y: startRoadY,
+        width: blockSize,
+        height: blockSize,
+        speed: 2,
         hp: 5000,
         armor: 2
     }
@@ -357,21 +431,21 @@ towers = [
         img: 'img/tower.svg',
         attack: 20,
         rate: 3,
-        range: Math.floor(blockSize*3),
+        range: blockSize*3,
         cost: 70
     },
     {
         img: 'img/catapult.svg',
         attack: 50,
         rate: 2,
-        range: Math.floor(blockSize*3),
+        range: blockSize*3,
         cost: 90
     },
     {
         img: 'img/magic.svg',
         attack: 20,
         rate: 2,
-        range: Math.floor(blockSize*2),
+        range: blockSize*2,
         cost: 80
     }
 ]
@@ -393,18 +467,18 @@ function SelectTower(i, x, y) {
 //Functions
 function draw() {
     drawField();
+    drawMap()
     drawTowers();
     drawBorder();
-    drawRoad();
+    // drawRoad();
     drawGUI();
     drawEnemies();
     showMessage(msg)
 }
-
 function update() {
     ctx.clearRect(blockSize, startRoadY-blockSize, widthRoad, heightRoad+blockSize);
     draw();
-    if(countIntervalSec == 20) {
+    if(countIntervalSec == 60) {
         getWave(countWave)
         countIntervalSec = 0
     }
@@ -412,7 +486,7 @@ function update() {
 }
 
 function start() {
-    timerId = setInterval(update, 100);
+    timerId = setInterval(update, 1000/60);
     getEvent()
 }
 
