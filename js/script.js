@@ -1,68 +1,93 @@
-﻿'use strict';
+﻿// 'use strict';
+
+
+const firstSlide = document.querySelector('.main');
+const game = document.querySelector('#game');
+const btnStartGame = document.querySelector('#btn__start');
+
+
+btnStartGame.addEventListener('click', start);
+
+
+let stopGame;
+
 
 const canvas = document.getElementById("canvas"),
       ctx = canvas.getContext("2d"),
       wrapper = document.querySelector('.wrapper');
+
+
+
+
 //Field size
-const width = Math.floor(window.innerWidth),
-      blockSize = Math.floor(width / 36),
+const width = 825,
+      blockSize = Math.floor(width / 25),
       height = blockSize * 16,
       halfBlockSize = Math.floor(blockSize/2),
-      widthField = width - blockSize,
-      heightField = height - halfBlockSize,
-      widthPlay = blockSize * 25;
+      widthField = blockSize * 25;
 
-let startRoadY = heightField - blockSize*8,
-    heightRoad = blockSize,
-    widthRoad = widthPlay;
+canvas.width = width
+canvas.height = height
 
-function resize() {
-    canvas.width = width;
-    canvas.height = height;
-}
-window.addEventListener('resize', resize);
 
 let timerId, timer;
 let countIntervalSec = 0;
+let level = 0;
 let countWave = 0;
 const endGame = {
-    x: 24*blockSize + halfBlockSize,
-    y: 7*blockSize + halfBlockSize
+    x: 24*blockSize - halfBlockSize,
+    y: 6*blockSize + halfBlockSize
 }
-let wave = [
+let wave = [[
    {
-        assasin: 7,
+        assasin: 2,
         knight: 0,
         dragon: 0,
         genie: 0
    }, {
-        assasin: 5,
-        knight: 7,
+        assasin: 0,
+        knight: 1,
+        dragon: 1,
+        genie: 0
+   }, {
+        assasin: 0,
+        knight: 0,
         dragon: 0,
-        genie: 0
-   }, {
-        assasin: 2,
-        knight: 2,
-        dragon: 3,
-        genie: 0
-   }, {
-        assasin: 2,
-        knight: 2,
-        dragon: 3,
-        genie: 0
+        genie: 2}
+//    }, {
+//         assasin: 2,
+//         knight: 2,
+//         dragon: 3,
+//         genie: 0
+//     }, {
+//         assasin: 2,
+//         knight: 0,
+//         dragon: 0,
+//         genie: 6
+//    }, {
+//         assasin: 2,
+//         knight: 2,
+//         dragon: 3,
+//         genie: 6
+//     }
+], [
+    {   
+        assasin: 1,
+        knight: 0,
+        dragon: 1,
+        genie: 1
     }, {
-        assasin: 2,
+        assasin: 1,
         knight: 0,
-        dragon: 0,
-        genie: 6
-   }, {
-        assasin: 2,
-        knight: 2,
-        dragon: 3,
-        genie: 6
-    }
+        dragon: 1,
+        genie: 1
+    }, {  
+        assasin: 1,
+        knight: 0,
+        dragon: 1,
+        genie: 1
+    }]
 ];
-let playerName = 'Larisa';
 let msg = 'save the kingdom!';
 let g = new Image(); //ground
     g.src = 'Sprites/grass_tile_2.png';
@@ -70,8 +95,6 @@ let g = new Image(); //ground
     r.src = 'Sprites/sand_tile.png';
  let   o = new Image(); //obstacle
     o.src = 'img/48.png';
- let   f = new Image(); //obstacle
-    f.src = 'Sprites/grass_tile_1.png';
 const map = [
     [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
     [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o],
@@ -87,252 +110,54 @@ const map = [
     [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,g,g,g,o,o,o,r,g,o,o],
     [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,g,o,o],
     [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
     [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o]
 ]
 
 function drawMap() {
     let countRowTile = 25,
-        countColumnTile  = 15;
+        countColumnTile  = 16;
     for (let i = 0; i < countColumnTile ; i++) {
         for (let j = 0; j < countRowTile; j++) {
             let tile = map[i][j];
-            ctx.drawImage(tile, halfBlockSize + blockSize * j, halfBlockSize + blockSize * i, blockSize, blockSize);
+            ctx.drawImage(tile, blockSize * j, blockSize * i, blockSize, blockSize);
         }
     }
 }
 
 function drawField() {
     ctx.fillStyle = 'green';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, widthField, height);
 };
-//Border
-function drawBorder() {
-    ctx.fillStyle = 'Black';
-    ctx.fillRect(0, 0, width, halfBlockSize);
-    ctx.fillRect(0, heightField, width, halfBlockSize);
-    ctx.fillRect(0, 0, halfBlockSize, height);
-    ctx.fillRect(width - halfBlockSize, 0, halfBlockSize, height);
-} 
-
-function drawGrid () {
-    for (let x = halfBlockSize; x < widthPlay - blockSize; x += blockSize) {
-        ctx.moveTo(x, halfBlockSize);
-        ctx.lineTo(x, heightField);
-      }
-      for (let y = halfBlockSize; y < heightField; y += blockSize) {
-        ctx.moveTo(halfBlockSize, y);
-        ctx.lineTo(widthPlay - 1.5*blockSize, y);
-      }
-      ctx.strokeStyle = "#03a003";
-      ctx.stroke();
-}
 
 //Road
 const endGameImg = new Image();
 endGameImg.src = 'img/flag.svg';
 
-function drawRoad () {
-    ctx.drawImage(endGameImg, endGame.x - halfBlockSize, endGame.y - blockSize, blockSize*1.5, blockSize*1.5);
+function drawFlag () {
+    ctx.drawImage(endGameImg, endGame.x, endGame.y, blockSize*1.5, blockSize*1.5);
 }
 
-//GUI 
-const imgLives = new Image();
-    imgLives.src = 'img/heart.svg';
-    const imgGold = new Image();
-    imgGold.src = 'img/chest.svg';
-    const imgEnemy = new Image();
-    imgEnemy.src = 'img/swords.svg';
-    const imgTower = new Image();
-    imgTower.src = 'img/tower.svg';
-    const imgCatapult = new Image();
-    imgCatapult.src = 'img/catapult.svg';
-    const imgMagic = new Image();
-    imgMagic.src = 'img/magic.svg';
-    const imgPlay = new Image();
-    imgPlay.src = 'img/play.svg';
-    const imgPause = new Image();
-    imgPause.src = 'img/pause.svg';
+let playerLives = 3; 
+let playerGold = 250;
 
-let imgPlayer = new Image();
-    imgPlayer.src = 'img/princess.svg';
-
-const towerSize = blockSize,
-    paramSize = blockSize,
-    playerSize = blockSize*2,
-    paramXFirst = widthPlay + blockSize,
-    paramXSecond = widthPlay + blockSize*4,
-    paramXThird = widthPlay + blockSize*7,
-    paramYFirst = blockSize,
-    paramYTower = blockSize*7,
-    paramYCatapult = blockSize*9,
-    paramYMagic = blockSize*11,
-    paramYPlayer = blockSize*3,
-    paramXBorder = paramXFirst + playerSize*0.9,
-    paramWidthBorder = playerSize*3.7;
-let lives = 3; 
-function countWaves() {
-
-}
-// let (countEnemies) = function () {
-//     return (wave.length - countWave)
-// }
-let playerGold = 200;
-
-function drawGUI () {
-    ctx.fillStyle = '#ffff00';
-    ctx.fillRect(widthPlay + halfBlockSize, halfBlockSize, width - (widthPlay + blockSize), height - blockSize);
-    ctx.drawImage(imgPause, paramXThird, paramYMagic + blockSize*2, towerSize, towerSize);//Settings
-    drawTowerGUI()
-    drawParams()
-    drawPlayer()
-} 
-function drawTowerGUI() {
-    ctx.fillStyle = '#000'
-    ctx.font = `${blockSize*0.8}px Mate SC`;
-    ctx.drawImage(imgTower, paramXFirst, paramYTower, towerSize, towerSize);
-    ctx.fillText('Archers tower', paramXFirst + paramSize * 2, paramYTower + paramSize / 1.2);
-    ctx.drawImage(imgCatapult, paramXFirst, paramYCatapult, towerSize, towerSize);
-    ctx.fillText('Catapult', paramXFirst + paramSize * 2, paramYCatapult + paramSize / 1.2);
-    ctx.drawImage(imgMagic, paramXFirst, paramYMagic, towerSize, towerSize);
-    ctx.fillText('Magic tower', paramXFirst + paramSize * 2, paramYMagic + paramSize / 1.2);
-}
-function showTowerParams(i, name) {
-    ctx.fillStyle = '#ffff00'
-    ctx.font = `bold ${blockSize*0.6}px Mate SC`;
-    ctx.strokeRect(paramXFirst - blockSize*0.2, name - blockSize*0.2, towerSize + blockSize*0.4, towerSize + blockSize*0.4)
-    ctx.fillRect(paramXFirst + paramSize * 1.4, name - blockSize, blockSize*8, paramSize*3);
-    ctx.strokeRect(paramXBorder, name - blockSize*0.8, paramWidthBorder, paramSize*2.8)
-    ctx.fillStyle = '#530300'
-    ctx.fillText(`attack: ${towers[i].attack}`, paramXFirst + paramSize * 2, name);
-    ctx.fillText(`range: ${towers[i].range}`, paramXFirst + paramSize * 2, name + paramSize*0.8); 
-    ctx.fillText(`rate: ${towers[i].rate}`, paramXFirst + paramSize * 2, name + paramSize*1.6);
-    ctx.fillText(`cost: ${towers[i].cost}`, paramXFirst + paramSize * 6, name + paramSize*0.8);
-}
-function drawParams() {
-    ctx.fillStyle = '#000'
-    ctx.font = `${blockSize}px Mate SC`;
-    ctx.drawImage(imgLives, paramXFirst, paramYFirst, paramSize, paramSize );
-    ctx.drawImage(imgEnemy, paramXSecond, paramYFirst, paramSize, paramSize); 
-    ctx.drawImage(imgGold, paramXThird, paramYFirst, paramSize, paramSize);
-    ctx.fillText(lives, paramXFirst + paramSize * 1.2, paramYFirst + paramSize / 1.2);
-    ctx.fillText((wave.length - countWave), paramXSecond + paramSize * 1.2, paramYFirst + paramSize / 1.2);
-    ctx.fillText(playerGold, paramXThird + paramSize * 1.3, paramYFirst + paramSize / 1.2);
-}
-function drawPlayer() {
-    ctx.font = `${blockSize*0.8}px Mate SC`
-    ctx.drawImage(imgPlayer, paramXFirst-blockSize*0.2, paramYPlayer, blockSize*1.5, blockSize*1.5); 
-    ctx.strokeStyle = "#03a003";
-    // ctx.strokeRect(paramXBorder, paramYPlayer, paramWidthBorder, playerSize*1.3);
-    ctx.fillText(`${playerName},`, paramXFirst + playerSize, paramYPlayer + blockSize);
-}
-function showMessage(msg) {
-    ctx.fillStyle = '#ffff00';
-    ctx.font = "Mate SC";
-    ctx.fillRect(paramXFirst + playerSize*1.01, paramYPlayer + blockSize*1.2, blockSize*6.9, blockSize)
-    ctx.fillStyle = '#000';
-    ctx.fillText(msg, paramXFirst + playerSize, paramYPlayer + blockSize*2)
-}
 let tX, tY;
 let towerInd;
 let clickCount = 0;
 
-function drawSettingsField() {
-    ctx.fillStyle = '#edf585';
-    ctx.font = "40px Mate SC";
-    ctx.fillRect(widthPlay + halfBlockSize, halfBlockSize, width - (widthPlay + blockSize), height - blockSize);
-    drawBorder()
-    ctx.fillText('Click start', paramXFirst, paramYFirst + blockSize*2);
-    ctx.drawImage(imgPlay, paramXSecond, paramYTower + blockSize*4, towerSize, towerSize);
-    canvas.addEventListener('click', e => {
-        if(e.offsetX < paramXSecond + towerSize && e.offsetX > paramXSecond && e.offsetY < paramYTower + blockSize*4 + towerSize && e.offsetY > paramYTower + blockSize*4) {
-        start();
-    } else {
-        drawSettingsField()
-    }}, {once: true})
-}
-function getEvent() {
-    canvas.addEventListener('mousemove', e => {
-        if( e.offsetX < paramXFirst + towerSize*8 && e.offsetX > paramXFirst && (e.offsetY > paramYTower && e.offsetY < paramYTower + towerSize ||  e.offsetY > paramYCatapult && e.offsetY < paramYCatapult + towerSize || e.offsetY > paramYMagic && e.offsetY < paramYMagic + towerSize )) {
-            canvas.style.cursor = 'pointer';
-        } else {
-            canvas.style.cursor = 'default'
-        }
-    });
-    canvas.addEventListener("click", e => {
-        if( e.offsetX < paramXFirst + towerSize && e.offsetX > paramXFirst && e.offsetY < paramYMagic + blockSize*2 + towerSize && e.offsetY > paramYMagic + blockSize*2) {
-            stop(); 
-            drawSettingsField();
-    // ctx.drawImage(imgPlay, paramXSecond, paramYTower + blockSize*4, towerSize, towerSize);
-    //         canvas.addEventListener('click', e => {
-    //             if(e.offsetX < paramXSecond + towerSize && e.offsetX > paramXSecond && e.offsetY < paramYTower + blockSize*4 + towerSize && e.offsetY > paramYTower + blockSize*4) {
-    //             start();
-    //         } }, {once:true})
-
-        } else if( e.offsetX < paramXFirst + towerSize*8 && e.offsetX > paramXFirst && (e.offsetY > paramYTower && e.offsetY < paramYTower + towerSize ||  e.offsetY > paramYCatapult && e.offsetY < paramYCatapult + towerSize || e.offsetY > paramYMagic && e.offsetY < paramYMagic + towerSize)) {
-            msg = 'select location';
-            stop();
-            if(e.offsetY > paramYTower && e.offsetY < paramYTower + towerSize) {
-                showTowerParams(0, paramYTower)
-                towerInd = 0
-            } else if( e.offsetY > paramYCatapult && e.offsetY < paramYCatapult + towerSize) { 
-                showTowerParams(1, paramYCatapult)
-                towerInd = 1
-            } else if(e.offsetY > paramYMagic && e.offsetY < paramYMagic + towerSize) {
-                showTowerParams(2, paramYMagic)
-                towerInd = 2
-            }
-            canvas.addEventListener('click', putTower, {once:true})
-            msg = 'choose a tower'
-        } else {
-            getEvent();
-        }
-      }, {once: true});
-}
-function putTower(e) {
-    if(e.offsetX < widthPlay - 1.5*blockSize && e.offsetX > halfBlockSize && e.offsetY > halfBlockSize && e.offsetY < heightField) {
-        let corX = e.offsetX - ((e.offsetX - halfBlockSize) % blockSize) //find start of tile
-        let corY = e.offsetY - ((e.offsetY - halfBlockSize) % blockSize)
-        let arrX = (corX - halfBlockSize) / blockSize //find cell's number in map array
-        let arrY = (corY - halfBlockSize) / blockSize
-        let result
-        for (let i = 0; i < createdTowers.length || result; i++) {  // check if another tower has same coordinates
-            createdTowers[i].x == corX && createdTowers[i].y == corY 
-            ? result = true : result = false}
-        if (map[arrY][arrX] == g && !result) {
-            if (playerGold >= towers[towerInd].cost) {
-                SelectTower(towerInd, corX, corY);
-            } else {
-                msg = "not enough gold"
-            }
-        } else {
-            msg = "can't build here"
-        }
-        start()
-    } else {
-        start()
-    }
-}
-function SelectTower(i, x, y) {
-    let circle = new Path2D();
-    circle.arc(x + halfBlockSize, y + halfBlockSize, towers[i].range, 0, Math.PI * 2)
-    let projectile = new Image();
-    projectile.src = 'img/minerals.svg';
-    createdTowers.push(new Tower(towers[i].name, towers[i].img, towers[i].attack, towers[i].rate, towers[i].range, towers[i].cost, towers[i].slowDown, x, y, circle, projectile))
-    playerGold -= towers[i].cost
-}
 
 let enemies = [];
 let towers = [];
 let left = {x: -1, y: 0};
-let right = {x: Math.floor(1), y: 0};
+let right = {x: 1, y: 0};
 let up = {x: 0, y: -1};
 let down = {x: 0, y: 1};
 
 //Enemies
 class Enemy {
     constructor(image, speed, hp, armor, bounty ) {
-        this.x = halfBlockSize,
-        this.y = startRoadY,
+        this.x = 0,
+        this.y = blockSize*7,
         this.image = new Image(),
         this.image.src = image,
         this.width = blockSize,
@@ -340,17 +165,20 @@ class Enemy {
         this.slowDown = 1,
         this.speed = speed,
         this.hp = hp,
+        this.currentHP = hp,
         this.armor = armor,
         this.bounty = bounty,
         this.direction = right
     }
     Move() {
-        for (let counter = 0; counter < this.speed * this.slowDown; counter ++){
-            let mapX = Math.floor((this.x - ((this.x - halfBlockSize)) % blockSize) / blockSize) //find cell's number in map array
-            let mapXRemainder =  ((this.x - halfBlockSize) % blockSize);
-            let mapY = Math.floor((this.y - ((this.y - halfBlockSize)) % blockSize) / blockSize)
-            let mapYRemainder =  ((this.y - halfBlockSize) % blockSize);
-            if(this.direction == right && map[mapY][mapX + 1] != r) {
+        for (let counter = 0; counter < this.speed * this.slowDown; counter += 3){
+            let mapX = Math.floor(this.x  / blockSize); //find cell's number in map array
+            let mapXRemainder =  (this.x  % blockSize);
+
+            let mapY = Math.floor(this.y / blockSize);
+            let mapYRemainder =  (this.y  % blockSize);
+
+            if(this.direction == right && map[mapY][mapX + 1] != r) { //if next tile != road, change direction
                 if (map[mapY - 1][mapX] != r) {
                     this.direction = down
                 } else {
@@ -382,111 +210,117 @@ class Enemy {
                 this.y += this.direction.y
     }}
     Update() {
-        if (this.hp <= 0) {
+        if (this.currentHP <= 0) {
             createdEnemies.splice(createdEnemies.indexOf(this), 1)
             playerGold +=this.bounty
         }
         if (this.x + this.width - halfBlockSize >= endGame.x) {
-            msg = 'game over!'
+            msg = 'game over!';
             stop();
         };
     }
     Draw() {
-        if (this.hp > 0) {
-            ctx.drawImage(this.image, this.x, this.y, this.width, this.height)
+        if (this.currentHP > 0) {
+            ctx.drawImage(this.image, this.x, this.y, this.width, this.height) //draw enemy
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(this.x, this.y - this.height/3, this.width + 2, this.height/5) //draw HP
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(this.x+1, this.y - this.height/3+1, this.width * this.currentHP / this.hp, this.height/5-2)
         }
     }
     GetDamage(damage) {
-        this.hp -= (damage * (1 - this.armor)) 
-        if (this.hp <= 0) {
-            this.hp = 0
+        this.currentHP -= (damage * (1 - this.armor)) 
+        if (this.currentHP <= 0) {
+            this.currentHP = 0
         }
     }
 }
 enemies = [
     {   
         name: 'assasin',
-        speed: blockSize / 30,
+        img: 'img/assasin.svg',
+        speed: blockSize / 12,
         hp: 350,
         armor: 0,
         bounty: 10
     },
     {
         name: 'knight',
-        speed: blockSize / 40,
+        img: 'img/knight.svg',
+        speed: blockSize / 12,
         hp: 500,
         armor: 0.1,
         bounty: 15
     },
     {
         name: 'dragon',
-        speed: blockSize / 50,
+        img: 'img/dragon.svg',
+        speed: blockSize / 14,
         hp: 1000,
         armor: 0.4,
         bounty: 30
     },
     {
         name: 'genie',
-        speed: blockSize / 15,
+        img: 'img/genie.svg',
+        speed: blockSize / 6,
         hp: 400,
         armor: 0.2,
         bounty: 40
     }
 ]
 
-let count = 0
-let countAssasin = 0;
-let countKnight = 0;
-let countDragon = 0;
-let countGenie = 0;
 let createdEnemies = [];
 let nextWaveFlag = false;
-function getWave(i) {
-    if (countAssasin == wave[i].assasin && countKnight == wave[i].knight && countDragon == wave[i].dragon && countGenie == wave[i].genie){
+let wavesAreOver;
+
+
+function getWave(lvl, i) {
+    if (countWave + 1 == wave[lvl].length && !wave[lvl][i].assasin && !wave[lvl][i].knight && !wave[lvl][i].dragon && !wave[lvl][i].genie) {
+        wavesAreOver = true
+                console.log(createdEnemies, wavesAreOver, msg)
+    }
+    else if (!wave[lvl][i].assasin && !wave[lvl][i].knight && !wave[lvl][i].dragon && !wave[lvl][i].genie) { //get next wave
         if (!nextWaveFlag){
         nextWaveFlag = true;
         setTimeout(() => {
-            countAssasin = 0;
-            countKnight = 0;
-            countDragon = 0;
-            countGenie = 0;
             countWave++;
-            nextWaveFlag = false;    
+            nextWaveFlag = false;   
         }, 3000);
         }
-    }
-        else if ( countAssasin == wave[i].assasin && countKnight == wave[i].knight && countDragon == wave[i].dragon && countGenie < wave[i].genie ) {
-        createEnemies(3, 'genie');
-    } else if (countAssasin == wave[i].assasin && countKnight == wave[i].knight && countDragon < wave[i].dragon) {
-        createEnemies(2, 'dragon');
-    } else if (countAssasin == wave[i].assasin && countKnight < wave[i].knight) {
-        createEnemies(1, 'knight')
-    } else if (countAssasin < wave[i].assasin) {
-        createEnemies(0, 'assasin');
+    } else if (!wave[lvl][i].assasin && !wave[lvl][i].knight && !wave[lvl][i].dragon && wave[lvl][i].genie ) { //render enemy
+        createEnemies(3, 'genie', wave[lvl][i]);
+    } else if (!wave[lvl][i].assasin && !wave[lvl][i].knight && wave[lvl][i].dragon) {
+        createEnemies(2, 'dragon', wave[lvl][i]);
+    } else if (!wave[lvl][i].assasin && wave[lvl][i].knight) {
+        createEnemies(1, 'knight', wave[lvl][i])
+    } else if (wave[lvl][i].assasin) {
+        createEnemies(0, 'assasin', wave[lvl][i]);
     }
 }
 
-function createEnemies(i, enemy) {
-    createdEnemies.push(new Enemy(`img/${enemy}.svg`, enemies[i].speed, enemies[i].hp, enemies[i].armor, enemies[i].bounty))
+function createEnemies(i, enemy, wave) {
+    createdEnemies.push(new Enemy(enemies[i].img, enemies[i].speed, enemies[i].hp, enemies[i].armor, enemies[i].bounty))
     switch(enemy) {
-        case 'assasin' : countAssasin++
+        case 'assasin' : wave.assasin--
         break;
-        case 'knight' : countKnight++
+        case 'knight' : wave.knight--
         break;
-        case 'dragon' : countDragon++
+        case 'dragon' : wave.dragon--
         break;
-        case 'genie' : countGenie++
+        case 'genie' : wave.genie--
         break;
     }
 }
 
 function drawEnemies() {
-    if(createdEnemies) {
-        createdEnemies.forEach((item) => {
-            item.Update();
-            item.Move();
-            item.Draw();
-        })
+    if(createdEnemies.length > 0) {
+        for (let i = 0; i < createdEnemies.length; i++){
+            createdEnemies[i].Move()
+            createdEnemies[i].Draw()
+            createdEnemies[i].Update()
+        }
     }
 }
 
@@ -504,7 +338,8 @@ class Tower {
         this.x = x, 
         this.y = y,
         this.circle = circle, //visible range
-        this.projectile = projectile,
+        this.projectile = new Image(),
+        this.projectile.src = projectile,
         this.projectileX = this.x + blockSize/4, //tower center
         this.projectileY = this.y + blockSize/4,
         this.flightX = 0, //distance of one shot
@@ -512,11 +347,12 @@ class Tower {
         this.counter = 0, //shot counter
         this.currentEnemy = 0 //attacked enemy
     }
-    Draw(x, y) {
-        ctx.drawImage(this.image, x, y, blockSize, blockSize);
-        ctx.stroke(this.circle)
+    Draw() {
+        ctx.drawImage(this.image, this.x, this.y, blockSize, blockSize);
+        // ctx.stroke(this.circle)
     }
-    Update() {if (this.currentEnemy) {
+    Update() {
+        if (this.currentEnemy) {
             this.ShootProjectile(this.name)
         } else {
             this.FindEnemy()
@@ -543,7 +379,7 @@ class Tower {
     }
     ShootProjectile(name) {
         switch (name) {
-            case 'archers':
+            case 'archers tower':
                 if (this.counter < this.rate) {
                     this.projectileX += this.flightX //get direction for projetile
                     this.projectileY += this.flightY
@@ -571,7 +407,10 @@ class Tower {
                     this.SetInitialParams()
                 }
             break
-            case 'magic':
+            case 'magic tower':
+                let aura = new Image();
+                    aura.src = 'img/smoke.svg';
+                    ctx.drawImage(aura, this.x, this.y - blockSize/2, blockSize, blockSize)
                 for (let i = 0; i < createdEnemies.length; i++) { //area magic attack (slowDown)
                     ctx.isPointInPath(this.circle, createdEnemies[i].x, createdEnemies[i].y) 
                     ? createdEnemies[i].slowDown = this.slowDown
@@ -584,7 +423,6 @@ class Tower {
                     this.counter ++
                 } else {
                     this.currentEnemy.GetDamage(this.attack)
-                    console.log(this.currentEnemy.hp)
                     this.SetInitialParams()
                 }
             break
@@ -592,15 +430,17 @@ class Tower {
     }
 }
 
+
 towers = [
     {   
-        name: 'archers',
+        name: 'archers tower',
         img: 'img/tower.svg',
-        attack: 15,
+        attack: 25,
         rate: 10,
         range: blockSize*3,
         cost: 70,
-        slowDown: 1
+        slowDown: 1,
+        projectile: 'img/arrow.svg'
     },
     {
         name: 'catapult',
@@ -609,62 +449,259 @@ towers = [
         rate: 30,
         range: blockSize*3,
         cost: 90,
-        slowDown: 1
+        slowDown: 1,
+        projectile: 'img/circle.svg'
     },
     {
-        name: 'magic',
+        name: 'magic tower',
         img: 'img/magic.svg',
         attack: 10,
         rate: 15,
-        range: blockSize*2.5,
+        range: blockSize*3,
         cost: 80,
-        slowDown: 0.8
+        slowDown: 0.6,
+        projectile: 'img/star.svg'
     }
 ]
 let createdTowers = [];
 
 function drawTowers () {
-    createdTowers.forEach((tower) => {
-        tower.Draw(tower.x, tower.y);
-        tower.Update();
-    })
+    for (let i = 0; i < createdTowers.length; i ++) {
+        createdTowers[i].Draw()
+        createdTowers[i].Update()
+    }
+}
+
+function checkLvlIsComplete () {
+    if (wavesAreOver && createdEnemies.length == 0) {
+        console.log('win')
+        msg = 'you win!';
+        stop()
+    }
 }
 
 //Functions
 function draw() {
-    drawField();
     drawMap()
     drawTowers();
-    drawBorder();
-    drawRoad();
-    drawGUI();
+    drawFlag();
     drawEnemies();
-    showMessage(msg)
+    writeGuiParams()
+    createMsgField()
 }
 let idReqAnimFrame ;
 
 function start() {
-    // console.log('start')
-    ctx.clearRect(blockSize, startRoadY-blockSize, widthRoad, heightRoad+blockSize);
-    draw();
-    if(countIntervalSec == 60) {
-        getWave(countWave)
-        countIntervalSec = 0
+    firstSlide.classList.add('hide')
+    game.classList.remove('hide')
+    game.classList.add('show')
+        writeGuiParams()
+
+    if (!stopGame) {
+        ctx.clearRect(0, 0, width, height);
+        draw();
+        if(countIntervalSec == 90 && !wavesAreOver) {
+            getWave(level, countWave)
+            countIntervalSec = 0
+        } else if (wavesAreOver) {
+            checkLvlIsComplete()
+        }
+        countIntervalSec++
+        idReqAnimFrame = window.requestAnimationFrame(start)
+    } else {
+        window.cancelAnimationFrame(idReqAnimFrame)
+        stopGame = false
     }
-    // console.log(countWave, countEnemies)
-    countIntervalSec++
-    getEvent()
-    idReqAnimFrame =  window.requestAnimationFrame(start)
     
-    // timerId = setInterval(start, 1000/30);
 }
 function stop() {
-    // clearInterval(timerId);
-    showMessage(msg)
-    // console.log('stop')
-    cancelAnimationFrame(idReqAnimFrame)
+    stopGame = true
+ 
 }
 
-resize();
-window.onload = window.requestAnimationFrame(start);
+// resize();
+// window.onload = window.requestAnimationFrame(start);
 // window.onload = start();
+// window.requestAnimationFrame(start)
+
+//Create field Towers on GUI
+
+const guiTowers = document.querySelector('.towers');
+let selectedTower;
+
+function drawGuiTowers() {
+    for (let i = 0; i < towers.length; i++) { //create buttons on GUI
+        let item = document.createElement('button');
+        item.classList.add('gui__item', 'show')
+        item.id = i
+
+
+        let itemImg = document.createElement('img');
+        itemImg.src = towers[i].img
+        itemImg.width = blockSize
+        itemImg.classList.add('img__icon');
+
+
+        let descr = document.createElement('div'); //description 
+        descr.classList.add('gui__descr')
+
+        let descrAttack = document.createElement('div');
+        descrAttack.textContent = 'attack '
+        descrAttack.append(towers[i].attack)
+        let descrRate = document.createElement('div');
+        descrRate.textContent = 'delay '
+        descrRate.append(towers[i].rate)
+        let descrSlowDown = document.createElement('div');
+        descrSlowDown.textContent = 'slowDown '
+        descrSlowDown.append(((1 - towers[i].slowDown)*100) +'%')
+
+
+        let cost = document.createElement('div') //cost 
+        cost.classList.add('show');
+        let costImg = document.createElement('img')
+        costImg.classList.add('img__icon')
+        costImg.width = blockSize
+        costImg.src = 'img/money-bag.svg'
+        let costDescr = document.createElement('span');
+        costDescr.textContent = towers[i].cost
+
+        descr.append(descrAttack, descrRate, descrSlowDown)
+        cost.append(costImg, costDescr)
+        item.append(itemImg, descr, cost)
+        guiTowers.append(item)
+
+       
+    }
+}
+drawGuiTowers()
+
+
+function clickToBuildTower() {
+    guiTowers.addEventListener('click', (e) => {
+        let btn = e.target.closest('button');
+        if (!btn) return;
+        if (!stopGame) {
+            msg = 'select location'
+        stop()
+        canvas.addEventListener('click', (e) => {
+            if(e.offsetX < width&& e.offsetX > 0 && e.offsetY < height && e.offsetY > 0) {
+                putTower(e, btn.id)
+            } else clickToBuildTower()
+        }, {once:true})
+        }
+    })
+}
+clickToBuildTower()
+
+function putTower(e, id) {
+    let corX = e.offsetX  - (e.offsetX % blockSize) //find start of tile
+    let corY = e.offsetY - (e.offsetY % blockSize)
+    let arrX = corX / blockSize //find cell's number in map array
+    let arrY = corY / blockSize
+    let result = false
+    for (let i = 0; i < createdTowers.length; i++) { // check if another tower has same coordinates
+        createdTowers[i].x == corX && createdTowers[i].y == corY 
+        ? result = true : result = false}
+    if (map[arrY][arrX] == g && !result) {
+        if (playerGold >= towers[id].cost) {
+            SelectTower(id, corX, corY);
+        } else {
+            msg = "not enough gold"
+        }
+    } else {
+        msg = "can't build here"
+    }
+    start()
+}
+
+function SelectTower(i, x, y) {
+    console.log(i)
+    let circle = new Path2D(); //tower.range
+    circle.arc(x + halfBlockSize, y + halfBlockSize, towers[i].range, 0, Math.PI * 2)
+
+    createdTowers.push(new Tower(towers[i].name, towers[i].img, towers[i].attack, towers[i].rate, towers[i].range, towers[i].cost, towers[i].slowDown, x, y, circle, towers[i].projectile))
+
+    playerGold -= towers[i].cost
+    msg = "save the kingdom"
+}
+
+
+//Create field Parameters on GUI
+
+const guiParams = document.querySelector('.gui__params');
+
+function getGuiParams(src, name) {
+    let item = document.createElement('div')
+    let itemDescr = document.createElement('div')
+    itemDescr.classList.add(name)
+    let itemImg = document.createElement('img')
+    itemImg.src = src
+    itemImg.width = blockSize
+    
+    item.append(itemImg, itemDescr)
+
+    return item
+}
+function drawGuiParams(playerLives, countWave, playerGold) {
+    guiParams.append(
+        getGuiParams('img/heart.svg', 'lives', playerLives),
+        getGuiParams('img/swords.svg', 'waves', `${countWave}/${wave[level].length}`),
+        getGuiParams('img/chest.svg', 'gold', playerGold),
+        )
+}
+
+drawGuiParams(playerLives, countWave, playerGold.textContent)
+
+function writeGuiParams() { //write current value
+    let lives = guiParams.querySelector('.lives')
+    lives.textContent = playerLives
+    let waves = guiParams.querySelector('.waves')
+    waves.textContent = `${countWave + 1}/${wave[level].length}`
+    let gold = guiParams.querySelector('.gold')
+    gold.textContent = playerGold
+    let name = guiMsg.querySelector('.gui__name')
+    name.textContent =  (document.querySelector('#text').value || 'Player') + ',' 
+    let message = guiMsg.querySelector('.gui__msg')
+    message.textContent = msg
+}
+
+//Create msg field in GUI
+
+const guiMsg  = document.querySelector('.msg')
+let guiMsgImg = document.querySelector('.img__gender')
+let guiMsgName = document.querySelector('#text')
+console.log(guiMsgName.value)
+
+function createMsgField() {
+    guiMsgImg.src = document.querySelector('input[name="gender"]:checked').value;
+    guiMsgImg.width = blockSize * 2
+}
+
+//Create settings on GUI
+
+const btnPause = document.querySelector('.btn__pause');
+const btnStart = document.querySelector('.btn__start');
+const btnMusic = document.querySelector('.btn__music');
+const btnMenu = document.querySelector('.btn__menu');
+
+btnPause.width = blockSize*2
+btnStart.width = blockSize*2
+btnMusic.width = blockSize*2
+btnMenu.width = blockSize*2
+
+function getPause() {
+    btnPause.classList.remove('show')
+    btnPause.classList.add('hide')
+    btnStart.classList.remove('hide')
+    btnStart.classList.add('show')
+    stop()
+}
+function getStart() {
+    btnStart.classList.remove('show')
+    btnStart.classList.add('hide')
+    btnPause.classList.remove('hide')
+    btnPause.classList.add('show')
+    start()
+}
+btnPause.addEventListener('click', getPause) 
+btnStart.addEventListener('click', getStart) 
