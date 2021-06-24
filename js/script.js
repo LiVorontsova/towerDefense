@@ -1,15 +1,41 @@
 ﻿// 'use strict';
 
+let music = new Audio()
+music.autoplay = true
+music.volume = 0.1
+music.loop = true
+let musicPlaying 
 
 const firstSlide = document.querySelector('.main');
 const game = document.querySelector('#game');
-const btnStartGame = document.querySelector('#btn__start');
+const btnOpenGame = document.querySelector('#btn__open');
+
+const menu = document.querySelector('.menu')
+let lvl = 0;
+
+btnOpenGame.addEventListener('click', openMenu);
 
 
-btnStartGame.addEventListener('click', start);
+function openMenu() {
+    firstSlide.classList.add('hide')
+    menu.classList.remove('hide')
+    menu.classList.add('show')
+    menuTitle.textContent = `Welcome, ${(document.querySelector('#text').value) || 'Player'}!`
+    music.src = 'audio/StrongHold.mp3'
+    musicPlaying = true
+    playMusic()
 
+}
 
-let stopGame;
+const menuBtnStart = document.querySelector('.btn__game')
+    menuBtnStart.addEventListener('click', () => {
+        menu.classList.remove('show')
+        menu.classList.add('hide')
+        game.classList.remove('hide')
+        game.classList.add('show')
+        music.src = 'audio/Combat04.mp3'
+        start()
+    } )
 
 
 const canvas = document.getElementById("canvas"),
@@ -22,9 +48,11 @@ const canvas = document.getElementById("canvas"),
 //Field size
 const width = 825,
       blockSize = Math.floor(width / 25),
+    // blockSize = 34
       height = blockSize * 16,
       halfBlockSize = Math.floor(blockSize/2),
-      widthField = blockSize * 25;
+      widthField = blockSize * 25,
+      blockSizeMove = blockSize * 100;
 
 canvas.width = width
 canvas.height = height
@@ -32,105 +60,116 @@ canvas.height = height
 
 let timerId, timer;
 let countIntervalSec = 0;
-let level = 0;
+// let level = 0;
 let countWave = 0;
 const endGame = {
     x: 24*blockSize - halfBlockSize,
     y: 6*blockSize + halfBlockSize
 }
-let wave = [[
-   {
-        assasin: 2,
-        knight: 0,
-        dragon: 0,
-        genie: 0
-   }, {
-        assasin: 0,
-        knight: 1,
-        dragon: 1,
-        genie: 0
-   }, {
-        assasin: 0,
-        knight: 0,
-        dragon: 0,
-        genie: 2}
-//    }, {
-//         assasin: 2,
-//         knight: 2,
-//         dragon: 3,
-//         genie: 0
-//     }, {
-//         assasin: 2,
-//         knight: 0,
-//         dragon: 0,
-//         genie: 6
-//    }, {
-//         assasin: 2,
-//         knight: 2,
-//         dragon: 3,
-//         genie: 6
-//     }
-], [
-    {   
-        assasin: 1,
-        knight: 0,
-        dragon: 1,
-        genie: 1
-    }, {
-        assasin: 1,
-        knight: 0,
-        dragon: 1,
-        genie: 1
-    }, {  
-        assasin: 1,
-        knight: 0,
-        dragon: 1,
-        genie: 1
-    }]
-];
-let msg = 'save the kingdom!';
 let g = new Image(); //ground
     g.src = 'Sprites/grass_tile_2.png';
  let   r = new Image(); //road
     r.src = 'Sprites/sand_tile.png';
  let   o = new Image(); //obstacle
     o.src = 'img/48.png';
-const map = [
-    [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
-    [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o],
-    [g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o],
-    [g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,r,r,r,r,g,g,g,g,o,o],
-    [g,g,g,g,g,g,g,r,o,o,o,o,o,o,g,o,o,g,r,g,g,g,g,o,o],
-    [g,g,g,g,g,g,o,r,r,r,r,o,g,g,g,o,g,g,r,o,g,g,g,o,o],
-    [g,g,g,o,o,o,o,o,g,g,r,o,g,g,g,o,o,o,r,o,g,g,g,o,o],
-    [r,r,r,r,r,r,r,r,r,r,r,o,g,g,g,g,g,g,r,o,o,r,r,r,r],
-    [o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,r,o,o,r,g,o,o],
-    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,o,g,r,g,o,o],
-    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,o,o,o,o,o,g,r,g,o,o],
-    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,g,g,g,o,o,o,r,g,o,o],
-    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,g,o,o],
-    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
-    [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
-    [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o]
+
+
+let level = [
+    {
+        gold: 250,
+        lives: 3,
+        isComplete: false,
+        map: [
+            [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o],
+            [g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o],
+            [g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,r,r,r,r,g,g,g,g,o,o],
+            [g,g,g,g,g,g,g,r,o,o,o,o,o,o,g,o,o,g,r,g,g,g,g,o,o],
+            [g,g,g,o,o,o,o,r,r,r,r,o,g,g,g,o,g,g,r,o,g,g,g,o,o],
+            [g,g,g,o,o,o,o,o,g,g,r,o,g,g,g,o,o,o,r,o,g,g,g,o,o],
+            [r,r,r,r,r,r,r,r,r,r,r,o,g,g,g,g,g,g,r,o,o,r,r,r,r],
+            [o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,r,o,o,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,o,g,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,o,o,o,o,o,g,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,g,g,g,o,o,o,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o]
+        ],
+        startY: blockSize*7*100,
+        wave: [{
+                assasin: 2,
+                knight: 0,
+                dragon: 0,
+                genie: 0
+           }, {
+                assasin: 0,
+                knight: 2,
+                dragon: 0,
+                genie: 0}
+           // }, {
+           //      assasin: 0,
+           //      knight: 0,
+           //      dragon: 0,
+           //      genie: 2}
+                ]
+    }, 
+    {
+        gold : 300,
+        lives : 3,
+        isComplete: false,
+        map: [
+            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o],
+            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o],
+            [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,r,r,r,r,r,r,r,o,o],
+            [g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,g,g,o,o,o,g,r,o,o],
+            [g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,g,o,o,o,o,o,r,o,o],
+            [g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,g,o,o,o,o,g,r,r,r],
+            [o,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,r,r,r,r,r,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,g,r,g,o,o],
+            [o,g,g,o,o,o,g,g,o,o,o,g,g,g,g,g,g,g,o,o,o,r,g,o,o],
+            [o,g,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,g,o,o],
+            [r,r,r,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,g,o,o],
+            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o]
+        ],
+        startY: blockSize*13*100,
+        wave: [{
+                assasin: 3,
+                knight: 2,
+                dragon: 0,
+                genie: 0
+           }, {
+                assasin: 0,
+                knight: 1,
+                dragon: 1,
+                genie: 2
+           }, {
+                assasin: 0,
+                knight: 2,
+                dragon: 3,
+                genie: 1}]
+    }
 ]
+let msg = 'save the kingdom!';
 
 function drawMap() {
     let countRowTile = 25,
         countColumnTile  = 16;
     for (let i = 0; i < countColumnTile ; i++) {
         for (let j = 0; j < countRowTile; j++) {
-            let tile = map[i][j];
+            let tile = level[lvl].map[i][j]
+            // let tile = map[i][j];
             ctx.drawImage(tile, blockSize * j, blockSize * i, blockSize, blockSize);
         }
     }
 }
 
-function drawField() {
-    ctx.fillStyle = 'green';
-    ctx.fillRect(0, 0, widthField, height);
-};
-
-//Road
+//Flag
 const endGameImg = new Image();
 endGameImg.src = 'img/flag.svg';
 
@@ -138,8 +177,6 @@ function drawFlag () {
     ctx.drawImage(endGameImg, endGame.x, endGame.y, blockSize*1.5, blockSize*1.5);
 }
 
-let playerLives = 3; 
-let playerGold = 250;
 
 let tX, tY;
 let towerInd;
@@ -153,11 +190,18 @@ let right = {x: 1, y: 0};
 let up = {x: 0, y: -1};
 let down = {x: 0, y: 1};
 
+
+
+
 //Enemies
+
+let enemyHP = new Image()
+enemyHP.src = 'img/heart.svg'
+
 class Enemy {
-    constructor(image, speed, hp, armor, bounty ) {
+    constructor(y, image, speed, hp, armor, bounty ) {
         this.x = 0,
-        this.y = blockSize*7,
+        this.y = y,
         this.image = new Image(),
         this.image.src = image,
         this.width = blockSize,
@@ -171,12 +215,13 @@ class Enemy {
         this.direction = right
     }
     Move() {
-        for (let counter = 0; counter < this.speed * this.slowDown; counter += 3){
-            let mapX = Math.floor(this.x  / blockSize); //find cell's number in map array
-            let mapXRemainder =  (this.x  % blockSize);
+        for (let counter = 0; counter < this.speed * this.slowDown; counter += 1){
+            let map = level[lvl].map
+            let mapX = Math.floor(this.x / blockSizeMove); //find cell's number in map array
+            let mapXRemainder =  (this.x  % blockSizeMove);
 
-            let mapY = Math.floor(this.y / blockSize);
-            let mapYRemainder =  (this.y  % blockSize);
+            let mapY = Math.floor(this.y / blockSizeMove);
+            let mapYRemainder =  (this.y % blockSizeMove);
 
             if(this.direction == right && map[mapY][mapX + 1] != r) { //if next tile != road, change direction
                 if (map[mapY - 1][mapX] != r) {
@@ -212,21 +257,21 @@ class Enemy {
     Update() {
         if (this.currentHP <= 0) {
             createdEnemies.splice(createdEnemies.indexOf(this), 1)
-            playerGold +=this.bounty
+            level[lvl].gold +=this.bounty
         }
-        if (this.x + this.width - halfBlockSize >= endGame.x) {
-            msg = 'game over!';
-            stop();
+        if (this.x/100 + this.width - blockSize >= endGame.x) {
+            level[lvl].lives -= 1
+            createdEnemies.splice(createdEnemies.indexOf(this), 1)
         };
     }
     Draw() {
         if (this.currentHP > 0) {
-            ctx.drawImage(this.image, this.x, this.y, this.width, this.height) //draw enemy
+            ctx.drawImage(this.image, this.x/100, this.y/100, this.width, this.height) //draw enemy
 
             ctx.fillStyle = '#000000';
-            ctx.fillRect(this.x, this.y - this.height/3, this.width + 2, this.height/5) //draw HP
+            ctx.fillRect(this.x/100, this.y/100 - this.height/4, this.width + 2, this.height/5) //draw HP
             ctx.fillStyle = '#fff';
-            ctx.fillRect(this.x+1, this.y - this.height/3+1, this.width * this.currentHP / this.hp, this.height/5-2)
+            ctx.fillRect(this.x/100 + 1, this.y/100 - this.height/4+1, this.width * this.currentHP / this.hp, this.height/5-2)
         }
     }
     GetDamage(damage) {
@@ -240,15 +285,16 @@ enemies = [
     {   
         name: 'assasin',
         img: 'img/assasin.svg',
-        speed: blockSize / 12,
+        speed: 70,
         hp: 350,
         armor: 0,
-        bounty: 10
+        bounty: 10,
+        descr: `Assasin: <br> moderate, little health, no armor`
     },
     {
         name: 'knight',
         img: 'img/knight.svg',
-        speed: blockSize / 12,
+        speed: 65,
         hp: 500,
         armor: 0.1,
         bounty: 15
@@ -256,7 +302,7 @@ enemies = [
     {
         name: 'dragon',
         img: 'img/dragon.svg',
-        speed: blockSize / 14,
+        speed: 50,
         hp: 1000,
         armor: 0.4,
         bounty: 30
@@ -264,7 +310,7 @@ enemies = [
     {
         name: 'genie',
         img: 'img/genie.svg',
-        speed: blockSize / 6,
+        speed: 120,
         hp: 400,
         armor: 0.2,
         bounty: 40
@@ -277,31 +323,31 @@ let wavesAreOver;
 
 
 function getWave(lvl, i) {
-    if (countWave + 1 == wave[lvl].length && !wave[lvl][i].assasin && !wave[lvl][i].knight && !wave[lvl][i].dragon && !wave[lvl][i].genie) {
+    let wave = level[lvl].wave
+    if (countWave + 1 == wave.length && !wave[i].assasin && !wave[i].knight && !wave[i].dragon && !wave[i].genie) {
         wavesAreOver = true
-                console.log(createdEnemies, wavesAreOver, msg)
     }
-    else if (!wave[lvl][i].assasin && !wave[lvl][i].knight && !wave[lvl][i].dragon && !wave[lvl][i].genie) { //get next wave
+    else if (!wave[i].assasin && !wave[i].knight && !wave[i].dragon && !wave[i].genie) { //get next wave
         if (!nextWaveFlag){
         nextWaveFlag = true;
         setTimeout(() => {
             countWave++;
             nextWaveFlag = false;   
-        }, 3000);
+        }, 4000);
         }
-    } else if (!wave[lvl][i].assasin && !wave[lvl][i].knight && !wave[lvl][i].dragon && wave[lvl][i].genie ) { //render enemy
-        createEnemies(3, 'genie', wave[lvl][i]);
-    } else if (!wave[lvl][i].assasin && !wave[lvl][i].knight && wave[lvl][i].dragon) {
-        createEnemies(2, 'dragon', wave[lvl][i]);
-    } else if (!wave[lvl][i].assasin && wave[lvl][i].knight) {
-        createEnemies(1, 'knight', wave[lvl][i])
-    } else if (wave[lvl][i].assasin) {
-        createEnemies(0, 'assasin', wave[lvl][i]);
+    } else if (!wave[i].assasin && !wave[i].knight && !wave[i].dragon && wave[i].genie ) { //render enemy
+        createEnemies(3, 'genie', wave[i]);
+    } else if (!wave[i].assasin && !wave[i].knight && wave[i].dragon) {
+        createEnemies(2, 'dragon', wave[i]);
+    } else if (!wave[i].assasin && wave[i].knight) {
+        createEnemies(1, 'knight', wave[i])
+    } else if (wave[i].assasin) {
+        createEnemies(0, 'assasin', wave[i]);
     }
 }
 
 function createEnemies(i, enemy, wave) {
-    createdEnemies.push(new Enemy(enemies[i].img, enemies[i].speed, enemies[i].hp, enemies[i].armor, enemies[i].bounty))
+    createdEnemies.push(new Enemy(level[lvl].startY, enemies[i].img, enemies[i].speed, enemies[i].hp, enemies[i].armor, enemies[i].bounty))
     switch(enemy) {
         case 'assasin' : wave.assasin--
         break;
@@ -323,6 +369,8 @@ function drawEnemies() {
         }
     }
 }
+
+
 
 //Tower
 class Tower {
@@ -349,7 +397,6 @@ class Tower {
     }
     Draw() {
         ctx.drawImage(this.image, this.x, this.y, blockSize, blockSize);
-        // ctx.stroke(this.circle)
     }
     Update() {
         if (this.currentEnemy) {
@@ -359,14 +406,12 @@ class Tower {
         }
     }
     FindEnemy() {
-        this.currentEnemy = createdEnemies.find((item) => ctx.isPointInPath(this.circle, item.x, item.y))
+        this.currentEnemy = createdEnemies.find((item) => ctx.isPointInPath(this.circle, item.x/100, item.y/100))
         if (this.currentEnemy) {
-            if (this.currentEnemy) {
-                let diffX = this.currentEnemy.x + halfBlockSize - this.x  //find distance to enemy
-                let diffY = this.currentEnemy.y + halfBlockSize - this.y
-                this.flightX = Math.floor(diffX / this.rate) //get distance of one shot
-                this.flightY = Math.floor(diffY / this.rate)
-            }
+            let diffX = this.currentEnemy.x/100 + halfBlockSize - this.x  //find distance to enemy
+            let diffY = this.currentEnemy.y/100 + halfBlockSize - this.y
+            this.flightX = Math.floor(diffX / this.rate) //get distance of one shot
+            this.flightY = Math.floor(diffY / this.rate)
         }
     }
     SetInitialParams() {
@@ -379,7 +424,7 @@ class Tower {
     }
     ShootProjectile(name) {
         switch (name) {
-            case 'archers tower':
+            case 'archers':
                 if (this.counter < this.rate) {
                     this.projectileX += this.flightX //get direction for projetile
                     this.projectileY += this.flightY
@@ -400,19 +445,19 @@ class Tower {
                     let splashX = this.projectileX - blockSize*2 //start of splash
                     let splashY = this.projectileY - blockSize*2 
                     for (let i = 0; i < createdEnemies.length; i++) { 
-                        (createdEnemies[i].x <= splashX + blockSize*4 && createdEnemies[i].x >= splashX - blockSize 
-                        && createdEnemies[i].y <= splashY + blockSize*4 && createdEnemies[i].y >= splashY - blockSize) 
+                        (createdEnemies[i].x/100 <= splashX + blockSize*4 && createdEnemies[i].x/100 >= splashX - blockSize 
+                        && createdEnemies[i].y/100 <= splashY + blockSize*4 && createdEnemies[i].y/100 >= splashY - blockSize) 
                         && createdEnemies[i].GetDamage(this.attack) //get damage if enemy is in this area
                     }
                     this.SetInitialParams()
                 }
             break
-            case 'magic tower':
+            case 'magic':
                 let aura = new Image();
                     aura.src = 'img/smoke.svg';
                     ctx.drawImage(aura, this.x, this.y - blockSize/2, blockSize, blockSize)
                 for (let i = 0; i < createdEnemies.length; i++) { //area magic attack (slowDown)
-                    ctx.isPointInPath(this.circle, createdEnemies[i].x, createdEnemies[i].y) 
+                    ctx.isPointInPath(this.circle, createdEnemies[i].x/100, createdEnemies[i].y/100) 
                     ? createdEnemies[i].slowDown = this.slowDown
                     : createdEnemies[i].slowDown = 1
                 } 
@@ -433,14 +478,15 @@ class Tower {
 
 towers = [
     {   
-        name: 'archers tower',
-        img: 'img/tower.svg',
-        attack: 25,
-        rate: 10,
+        name: 'archers',
+        img: 'img/archers.svg',
+        attack: 20,
+        rate: 15,
         range: blockSize*3,
         cost: 70,
         slowDown: 1,
-        projectile: 'img/arrow.svg'
+        projectile: 'img/arrow.svg',
+        descr: `Archers tower:  single target <img src='img/arrow.svg' class='img__icon'>`
     },
     {
         name: 'catapult',
@@ -450,17 +496,21 @@ towers = [
         range: blockSize*3,
         cost: 90,
         slowDown: 1,
-        projectile: 'img/circle.svg'
+        projectile: 'img/circle.svg',
+        descr: `Catapult: splash  <img src='img/circle.svg' class='img__icon'> `
+
     },
     {
-        name: 'magic tower',
+        name: 'magic',
         img: 'img/magic.svg',
-        attack: 10,
-        rate: 15,
+        attack: 15,
+        rate: 20,
         range: blockSize*3,
         cost: 80,
-        slowDown: 0.6,
-        projectile: 'img/star.svg'
+        slowDown: 0.7,
+        projectile: 'img/star.svg',
+        descr: `Magic tower: single target <img src='img/star.svg' class='img__icon'> <br>Superpower <img src='img/smoke.svg' class='img__icon'> - slows enemies around self`
+
     }
 ]
 let createdTowers = [];
@@ -472,74 +522,85 @@ function drawTowers () {
     }
 }
 
+
+
+//Functions
+
 function checkLvlIsComplete () {
     if (wavesAreOver && createdEnemies.length == 0) {
-        console.log('win')
-        msg = 'you win!';
+        msg = 'you have won!';
+        level[lvl].isComplete = true
         stop()
+        btnNext.classList.remove('hide')
+        btnNext.classList.add('show')
+        music.src = 'audio/StrongHold.mp3'
+        playMusic()
     }
 }
 
-//Functions
+function checkLives() {
+    if (!level[lvl].lives) {
+        msg = 'game over!';
+        stop();
+    }
+}
+
 function draw() {
     drawMap()
     drawTowers();
     drawFlag();
     drawEnemies();
-    writeGuiParams()
     createMsgField()
 }
+
 let idReqAnimFrame ;
+let stopGame;
+let isStopped
+
+function stop() {
+    stopGame = true
+    isStopped = true
+}
 
 function start() {
-    firstSlide.classList.add('hide')
-    game.classList.remove('hide')
-    game.classList.add('show')
-        writeGuiParams()
+    checkLives()
+    writeGuiParams()
+    isStopped = false
 
     if (!stopGame) {
         ctx.clearRect(0, 0, width, height);
         draw();
-        if(countIntervalSec == 90 && !wavesAreOver) {
-            getWave(level, countWave)
+        if(!(countIntervalSec % 90) && !wavesAreOver) {
+            getWave(lvl, countWave)
             countIntervalSec = 0
         } else if (wavesAreOver) {
             checkLvlIsComplete()
         }
-        countIntervalSec++
         idReqAnimFrame = window.requestAnimationFrame(start)
+        countIntervalSec++
     } else {
         window.cancelAnimationFrame(idReqAnimFrame)
         stopGame = false
     }
-    
-}
-function stop() {
-    stopGame = true
- 
 }
 
-// resize();
-// window.onload = window.requestAnimationFrame(start);
-// window.onload = start();
-// window.requestAnimationFrame(start)
 
 //Create field Towers on GUI
-
-const guiTowers = document.querySelector('.towers');
-let selectedTower;
+const gui = document.querySelector('.gui')
+const guiTowers = document.querySelector('.gui__card-towers');
 
 function drawGuiTowers() {
     for (let i = 0; i < towers.length; i++) { //create buttons on GUI
         let item = document.createElement('button');
         item.classList.add('gui__item', 'show')
         item.id = i
+        item.name = towers[i].name
 
 
         let itemImg = document.createElement('img');
         itemImg.src = towers[i].img
         itemImg.width = blockSize
-        itemImg.classList.add('img__icon');
+        itemImg.classList.add('img');
 
 
         let descr = document.createElement('div'); //description 
@@ -553,13 +614,13 @@ function drawGuiTowers() {
         descrRate.append(towers[i].rate)
         let descrSlowDown = document.createElement('div');
         descrSlowDown.textContent = 'slowDown '
-        descrSlowDown.append(((1 - towers[i].slowDown)*100) +'%')
+        descrSlowDown.append(Math.floor((1 - towers[i].slowDown)*100) +'%')
 
 
         let cost = document.createElement('div') //cost 
         cost.classList.add('show');
         let costImg = document.createElement('img')
-        costImg.classList.add('img__icon')
+        costImg.classList.add('img')
         costImg.width = blockSize
         costImg.src = 'img/money-bag.svg'
         let costDescr = document.createElement('span');
@@ -576,22 +637,29 @@ function drawGuiTowers() {
 drawGuiTowers()
 
 
-function clickToBuildTower() {
-    guiTowers.addEventListener('click', (e) => {
-        let btn = e.target.closest('button');
-        if (!btn) return;
-        if (!stopGame) {
-            msg = 'select location'
-        stop()
-        canvas.addEventListener('click', (e) => {
-            if(e.offsetX < width&& e.offsetX > 0 && e.offsetY < height && e.offsetY > 0) {
-                putTower(e, btn.id)
-            } else clickToBuildTower()
-        }, {once:true})
-        }
-    })
-}
-clickToBuildTower()
+
+//add listener to btns on GUI towers
+
+let selectedTowerOnBtn = 0
+
+guiTowers.addEventListener('click', (e) => {
+    let btn = e.target.closest('button');
+    if (!btn || stopGame) return;
+    msg = 'select location'
+    selectedTowerOnBtn = btn.id
+    document.body.style.cursor = `url(../dist/img/${btn.name}.png) 10 10, auto`
+}) 
+
+
+//find coordinates of click on canvas, build tower by current id
+
+canvas.addEventListener('click', (e) => {
+    if (selectedTowerOnBtn) {
+        putTower(e, selectedTowerOnBtn)
+        document.body.style.cursor = 'auto'
+    }
+})
+
 
 function putTower(e, id) {
     let corX = e.offsetX  - (e.offsetX % blockSize) //find start of tile
@@ -599,30 +667,30 @@ function putTower(e, id) {
     let arrX = corX / blockSize //find cell's number in map array
     let arrY = corY / blockSize
     let result = false
+    let map = level[lvl].map
     for (let i = 0; i < createdTowers.length; i++) { // check if another tower has same coordinates
         createdTowers[i].x == corX && createdTowers[i].y == corY 
         ? result = true : result = false}
     if (map[arrY][arrX] == g && !result) {
-        if (playerGold >= towers[id].cost) {
+        if (level[lvl].gold >= towers[id].cost) {
             SelectTower(id, corX, corY);
         } else {
             msg = "not enough gold"
         }
     } else {
-        msg = "can't build here"
+        msg = "you can't build here"
     }
-    start()
+    selectedTowerOnBtn = 0
 }
 
 function SelectTower(i, x, y) {
-    console.log(i)
     let circle = new Path2D(); //tower.range
     circle.arc(x + halfBlockSize, y + halfBlockSize, towers[i].range, 0, Math.PI * 2)
 
     createdTowers.push(new Tower(towers[i].name, towers[i].img, towers[i].attack, towers[i].rate, towers[i].range, towers[i].cost, towers[i].slowDown, x, y, circle, towers[i].projectile))
 
-    playerGold -= towers[i].cost
-    msg = "save the kingdom"
+    level[lvl].gold -= towers[i].cost
+    msg = "save the kingdom!"
 }
 
 
@@ -642,23 +710,23 @@ function getGuiParams(src, name) {
 
     return item
 }
-function drawGuiParams(playerLives, countWave, playerGold) {
+function drawGuiParams() {
     guiParams.append(
-        getGuiParams('img/heart.svg', 'lives', playerLives),
-        getGuiParams('img/swords.svg', 'waves', `${countWave}/${wave[level].length}`),
-        getGuiParams('img/chest.svg', 'gold', playerGold),
+        getGuiParams('img/heart.svg', 'lives'),
+        getGuiParams('img/swords.svg', 'waves'),
+        getGuiParams('img/chest.svg', 'gold'),
         )
 }
 
-drawGuiParams(playerLives, countWave, playerGold.textContent)
+drawGuiParams()
 
 function writeGuiParams() { //write current value
     let lives = guiParams.querySelector('.lives')
-    lives.textContent = playerLives
+    lives.textContent = level[lvl].lives
     let waves = guiParams.querySelector('.waves')
-    waves.textContent = `${countWave + 1}/${wave[level].length}`
+    waves.textContent = `${countWave + 1}/${level[lvl].wave.length}`
     let gold = guiParams.querySelector('.gold')
-    gold.textContent = playerGold
+    gold.textContent = level[lvl].gold
     let name = guiMsg.querySelector('.gui__name')
     name.textContent =  (document.querySelector('#text').value || 'Player') + ',' 
     let message = guiMsg.querySelector('.gui__msg')
@@ -670,7 +738,6 @@ function writeGuiParams() { //write current value
 const guiMsg  = document.querySelector('.msg')
 let guiMsgImg = document.querySelector('.img__gender')
 let guiMsgName = document.querySelector('#text')
-console.log(guiMsgName.value)
 
 function createMsgField() {
     guiMsgImg.src = document.querySelector('input[name="gender"]:checked').value;
@@ -682,26 +749,96 @@ function createMsgField() {
 const btnPause = document.querySelector('.btn__pause');
 const btnStart = document.querySelector('.btn__start');
 const btnMusic = document.querySelector('.btn__music');
-const btnMenu = document.querySelector('.btn__menu');
+const btnNext = document.querySelector('.btn__next');
 
-btnPause.width = blockSize*2
-btnStart.width = blockSize*2
-btnMusic.width = blockSize*2
-btnMenu.width = blockSize*2
 
 function getPause() {
-    btnPause.classList.remove('show')
-    btnPause.classList.add('hide')
-    btnStart.classList.remove('hide')
-    btnStart.classList.add('show')
-    stop()
+    if (!isStopped) {
+        btnPause.classList.remove('show')
+        btnPause.classList.add('hide')
+        btnStart.classList.remove('hide')
+        btnStart.classList.add('show')
+        music.src = 'audio/StrongHold.mp3'
+        playMusic()
+        stop()
+    }
 }
 function getStart() {
     btnStart.classList.remove('show')
     btnStart.classList.add('hide')
     btnPause.classList.remove('hide')
     btnPause.classList.add('show')
+    msg = 'save the kingdom!'
+    music.src = 'audio/Combat04.mp3'
+    playMusic()
     start()
 }
 btnPause.addEventListener('click', getPause) 
 btnStart.addEventListener('click', getStart) 
+btnStart.classList.add('active')
+
+btnMusic.addEventListener('click', () => {
+    if (!musicPlaying) {
+        musicPlaying = true
+        btnMusic.classList.remove('active')
+    } else {
+        musicPlaying = false
+        btnMusic.classList.add('active')
+    }
+    playMusic()
+})
+function playMusic() {
+    if(musicPlaying) {
+        music.play()
+    } else {
+        music.pause()
+    } 
+}
+
+btnNext.addEventListener('click', () => { //click to start new lvl
+    if(level[lvl].isComplete) {
+        btnNext.classList.remove('show')
+        btnNext.classList.add('hide')
+        createdTowers = []
+        createdEnemies = []
+        countWave = 0
+        wavesAreOver = false
+        lvl ++
+        music.src = 'audio/Combat04.mp3'
+        playMusic()
+        start()
+    }
+} ) 
+btnNext.classList.add('active')
+
+//Main menu
+
+let menuTitle = document.querySelector('.menu__title')
+const menuEnemies = document.querySelector('.menu__wrapper-enemies')
+const menuTowers = document.querySelector('.menu__wrapper-towers')
+
+
+
+function drawMenuItems() {
+    for (let i = 0; i < towers.length; i++) {
+    let name = 'menu__item'
+    let item = document.createElement('div')
+    item.classList.add('menu__item', name)
+    let itemImg = document.createElement('img')
+    itemImg.src = towers[i].img
+    itemImg.width = blockSize*1.5
+    let itemDescr = document.createElement('div')
+
+    itemDescr.innerHTML = towers[i].descr
+
+    item.append(itemImg, itemDescr)
+    menuTowers.append(item)
+    }
+
+}
+
+drawMenuItems()
+
+
+
+
