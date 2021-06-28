@@ -1,22 +1,24 @@
-﻿// 'use strict';
+// 'use strict';
 
-let music = new Audio()
+
+//Add music
+let music = new Audio() 
 music.autoplay = true
 music.volume = 0.1
 music.loop = true
 let musicPlaying 
 
+
+//Add slides
 const firstSlide = document.querySelector('.main');
 const game = document.querySelector('#game');
+const menu = document.querySelector('.menu');
+const lastSlide = document.querySelector('.ending');
 const btnOpenGame = document.querySelector('#btn__open');
-
-const menu = document.querySelector('.menu')
-let lvl = 0;
 
 btnOpenGame.addEventListener('click', openMenu);
 
-
-function openMenu() {
+function openMenu() { //open menu with instruction
     firstSlide.classList.add('hide')
     menu.classList.remove('hide')
     menu.classList.add('show')
@@ -24,16 +26,18 @@ function openMenu() {
     music.src = 'audio/StrongHold.mp3'
     musicPlaying = true
     playMusic()
-
 }
 
+//click to start and play
 const menuBtnStart = document.querySelector('.btn__game')
+
     menuBtnStart.addEventListener('click', () => {
         menu.classList.remove('show')
         menu.classList.add('hide')
         game.classList.remove('hide')
         game.classList.add('show')
         music.src = 'audio/Combat04.mp3'
+        drawGenderImg()
         start()
     } )
 
@@ -42,81 +46,87 @@ const canvas = document.getElementById("canvas"),
       ctx = canvas.getContext("2d"),
       wrapper = document.querySelector('.wrapper');
 
-
-
-
-//Field size
+//Game size for canvas
 const width = 825,
       blockSize = Math.floor(width / 25),
-    // blockSize = 34
       height = blockSize * 16,
       halfBlockSize = Math.floor(blockSize/2),
-      widthField = blockSize * 25,
       blockSizeMove = blockSize * 100;
 
 canvas.width = width
 canvas.height = height
 
 
-let timerId, timer;
-let countIntervalSec = 0;
-// let level = 0;
-let countWave = 0;
-const endGame = {
+let countWave = 0; //counts the waves of enemies that were rendered
+
+
+//Flag (end of the road)
+const endGameImg = new Image();
+endGameImg.src = 'img/flag.svg';
+
+function drawFlag () {
+    ctx.drawImage(endGameImg, endGame.x, endGame.y, blockSize*1.5, blockSize*1.5);
+}
+const endGame = { //flag that you can't let enemies touch
     x: 24*blockSize - halfBlockSize,
     y: 6*blockSize + halfBlockSize
 }
-let g = new Image(); //ground
-    g.src = 'Sprites/grass_tile_2.png';
- let   r = new Image(); //road
-    r.src = 'Sprites/sand_tile.png';
- let   o = new Image(); //obstacle
-    o.src = 'img/48.png';
 
+//Map tiles
+let g = new Image(); //ground
+    g.src = 'img/ground.png';
+ let   r = new Image(); //road
+    r.src = 'img/road.png';
+ let   o = new Image(); //obstacle
+    o.src = 'img/water.png';
+
+let lvl = 0; //current level
 
 let level = [
     {
-        gold: 250,
+        i: 0,
+        gold: 200,
         lives: 3,
         isComplete: false,
         map: [
             [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
             [g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o],
             [g,g,g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o],
-            [g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,r,r,r,r,g,g,g,g,o,o],
-            [g,g,g,g,g,g,g,r,o,o,o,o,o,o,g,o,o,g,r,g,g,g,g,o,o],
+            [g,g,g,o,o,o,o,r,r,r,r,r,r,r,r,r,r,r,r,g,g,g,g,o,o],
+            [g,g,g,o,o,o,o,r,o,o,o,o,o,o,g,o,o,g,r,g,g,g,g,o,o],
             [g,g,g,o,o,o,o,r,r,r,r,o,g,g,g,o,g,g,r,o,g,g,g,o,o],
             [g,g,g,o,o,o,o,o,g,g,r,o,g,g,g,o,o,o,r,o,g,g,g,o,o],
-            [r,r,r,r,r,r,r,r,r,r,r,o,g,g,g,g,g,g,r,o,o,r,r,r,r],
-            [o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,r,o,o,r,g,o,o],
-            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,o,g,r,g,o,o],
-            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,o,o,o,o,o,g,r,g,o,o],
-            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,g,g,g,o,o,o,r,g,o,o],
-            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,r,r,r,r,r,r,r,r,g,o,o],
+            [r,r,r,r,r,r,r,r,r,r,r,o,g,g,g,o,o,o,r,r,r,r,r,r,r],
+            [o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,o,o,o,o,o,o,o,g,o,o],
+            [o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
             [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
             [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o],
             [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o]
         ],
         startY: blockSize*7*100,
         wave: [{
-                assasin: 2,
+                assasin: 4,
                 knight: 0,
                 dragon: 0,
                 genie: 0
            }, {
                 assasin: 0,
-                knight: 2,
+                knight: 7,
                 dragon: 0,
-                genie: 0}
-           // }, {
-           //      assasin: 0,
-           //      knight: 0,
-           //      dragon: 0,
-           //      genie: 2}
-                ]
+                genie: 1
+            }, {
+                assasin: 4,
+                knight: 0,
+                dragon: 2,
+                genie: 1
+            }]
     }, 
     {
-        gold : 300,
+        i: 1,
+        gold : 200,
         lives : 3,
         isComplete: false,
         map: [
@@ -129,32 +139,40 @@ let level = [
             [g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,g,o,o,o,o,o,r,o,o],
             [g,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,g,o,o,o,o,g,r,r,r],
             [o,g,g,g,g,g,o,o,o,o,o,o,o,o,o,r,r,r,r,r,r,r,g,o,o],
-            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,r,g,o,o],
-            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,g,r,g,o,o],
-            [o,g,g,o,o,o,g,g,o,o,o,g,g,g,g,g,g,g,o,o,o,r,g,o,o],
-            [o,g,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,g,o,o],
-            [r,r,r,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,g,g,g,g,g,o,o],
-            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,g,g,g,g,g,g,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,g,o,o,r,g,o,o],
+            [o,g,g,g,g,g,g,g,g,g,g,g,g,g,o,o,o,o,o,o,g,r,o,o,o],
+            [o,g,g,o,o,o,g,g,o,o,o,o,g,o,o,o,o,o,o,o,o,r,o,o,o],
+            [o,g,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,o,o,o],
+            [r,r,r,o,o,o,o,o,o,o,o,o,o,g,o,o,o,g,g,o,o,o,g,o,o],
+            [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,g,o,o,o,g,g,g,o,o],
             [o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o]
         ],
         startY: blockSize*13*100,
         wave: [{
-                assasin: 3,
-                knight: 2,
+                assasin: 2,
+                knight: 5,
                 dragon: 0,
                 genie: 0
            }, {
-                assasin: 0,
-                knight: 1,
-                dragon: 1,
-                genie: 2
+                assasin: 3,
+                knight: 0,
+                dragon: 3,
+                genie: 0
            }, {
                 assasin: 0,
-                knight: 2,
+                knight: 3,
+                dragon: 0,
+                genie: 2
+            }, {
+                assasin: 2,
+                knight: 0,
                 dragon: 3,
-                genie: 1}]
+                genie: 3
+            }]
     }
 ]
+
+
 let msg = 'save the kingdom!';
 
 function drawMap() {
@@ -163,40 +181,21 @@ function drawMap() {
     for (let i = 0; i < countColumnTile ; i++) {
         for (let j = 0; j < countRowTile; j++) {
             let tile = level[lvl].map[i][j]
-            // let tile = map[i][j];
             ctx.drawImage(tile, blockSize * j, blockSize * i, blockSize, blockSize);
         }
     }
 }
 
-//Flag
-const endGameImg = new Image();
-endGameImg.src = 'img/flag.svg';
 
-function drawFlag () {
-    ctx.drawImage(endGameImg, endGame.x, endGame.y, blockSize*1.5, blockSize*1.5);
-}
-
-
-let tX, tY;
-let towerInd;
-let clickCount = 0;
-
+//Enemies
 
 let enemies = [];
-let towers = [];
+
+//Direction for enemy
 let left = {x: -1, y: 0};
 let right = {x: 1, y: 0};
 let up = {x: 0, y: -1};
 let down = {x: 0, y: 1};
-
-
-
-
-//Enemies
-
-let enemyHP = new Image()
-enemyHP.src = 'img/heart.svg'
 
 class Enemy {
     constructor(y, image, speed, hp, armor, bounty ) {
@@ -269,9 +268,9 @@ class Enemy {
             ctx.drawImage(this.image, this.x/100, this.y/100, this.width, this.height) //draw enemy
 
             ctx.fillStyle = '#000000';
-            ctx.fillRect(this.x/100, this.y/100 - this.height/4, this.width + 2, this.height/5) //draw HP
+            ctx.fillRect(this.x/100, this.y/100 - this.height/4, this.width + 2, this.height/5) //draw HP bg
             ctx.fillStyle = '#fff';
-            ctx.fillRect(this.x/100 + 1, this.y/100 - this.height/4+1, this.width * this.currentHP / this.hp, this.height/5-2)
+            ctx.fillRect(this.x/100 + 1, this.y/100 - this.height/4+1, this.width * this.currentHP / this.hp, this.height/5-2) //draw current HP
         }
     }
     GetDamage(damage) {
@@ -285,7 +284,7 @@ enemies = [
     {   
         name: 'assasin',
         img: 'img/assasin.svg',
-        speed: 70,
+        speed: 60,
         hp: 350,
         armor: 0,
         bounty: 10,
@@ -294,7 +293,7 @@ enemies = [
     {
         name: 'knight',
         img: 'img/knight.svg',
-        speed: 65,
+        speed: 55,
         hp: 500,
         armor: 0.1,
         bounty: 15
@@ -305,7 +304,7 @@ enemies = [
         speed: 50,
         hp: 1000,
         armor: 0.4,
-        bounty: 30
+        bounty: 25
     },
     {
         name: 'genie',
@@ -313,7 +312,7 @@ enemies = [
         speed: 120,
         hp: 400,
         armor: 0.2,
-        bounty: 40
+        bounty: 30
     }
 ]
 
@@ -326,14 +325,14 @@ function getWave(lvl, i) {
     let wave = level[lvl].wave
     if (countWave + 1 == wave.length && !wave[i].assasin && !wave[i].knight && !wave[i].dragon && !wave[i].genie) {
         wavesAreOver = true
-    }
+    } //check if waves on this lvl are over
     else if (!wave[i].assasin && !wave[i].knight && !wave[i].dragon && !wave[i].genie) { //get next wave
         if (!nextWaveFlag){
         nextWaveFlag = true;
         setTimeout(() => {
             countWave++;
             nextWaveFlag = false;   
-        }, 4000);
+        }, 5000);
         }
     } else if (!wave[i].assasin && !wave[i].knight && !wave[i].dragon && wave[i].genie ) { //render enemy
         createEnemies(3, 'genie', wave[i]);
@@ -346,7 +345,7 @@ function getWave(lvl, i) {
     }
 }
 
-function createEnemies(i, enemy, wave) {
+function createEnemies(i, enemy, wave) {//push new enemy to createdEnemies array
     createdEnemies.push(new Enemy(level[lvl].startY, enemies[i].img, enemies[i].speed, enemies[i].hp, enemies[i].armor, enemies[i].bounty))
     switch(enemy) {
         case 'assasin' : wave.assasin--
@@ -361,7 +360,7 @@ function createEnemies(i, enemy, wave) {
 }
 
 function drawEnemies() {
-    if(createdEnemies.length > 0) {
+    if(createdEnemies.length) {
         for (let i = 0; i < createdEnemies.length; i++){
             createdEnemies[i].Move()
             createdEnemies[i].Draw()
@@ -373,6 +372,9 @@ function drawEnemies() {
 
 
 //Tower
+
+let towers = [];
+
 class Tower {
     constructor(name, image, attack, rate, range, cost, slowDown, x, y, circle, projectile) {
         this.name = name
@@ -397,6 +399,7 @@ class Tower {
     }
     Draw() {
         ctx.drawImage(this.image, this.x, this.y, blockSize, blockSize);
+        // ctx.stroke(this.circle)
     }
     Update() {
         if (this.currentEnemy) {
@@ -405,7 +408,7 @@ class Tower {
             this.FindEnemy()
         }
     }
-    FindEnemy() {
+    FindEnemy() { //find current enemy within radius of attack
         this.currentEnemy = createdEnemies.find((item) => ctx.isPointInPath(this.circle, item.x/100, item.y/100))
         if (this.currentEnemy) {
             let diffX = this.currentEnemy.x/100 + halfBlockSize - this.x  //find distance to enemy
@@ -444,6 +447,7 @@ class Tower {
                 } else {
                     let splashX = this.projectileX - blockSize*2 //start of splash
                     let splashY = this.projectileY - blockSize*2 
+                    // ctx.strokeRect(splashX, splashY, blockSize*4, blockSize*4)
                     for (let i = 0; i < createdEnemies.length; i++) { 
                         (createdEnemies[i].x/100 <= splashX + blockSize*4 && createdEnemies[i].x/100 >= splashX - blockSize 
                         && createdEnemies[i].y/100 <= splashY + blockSize*4 && createdEnemies[i].y/100 >= splashY - blockSize) 
@@ -480,8 +484,8 @@ towers = [
     {   
         name: 'archers',
         img: 'img/archers.svg',
-        attack: 20,
-        rate: 15,
+        attack: 30,
+        rate: 10,
         range: blockSize*3,
         cost: 70,
         slowDown: 1,
@@ -491,8 +495,8 @@ towers = [
     {
         name: 'catapult',
         img: 'img/catapult.svg',
-        attack: 60,
-        rate: 30,
+        attack: 50,
+        rate: 40,
         range: blockSize*3,
         cost: 90,
         slowDown: 1,
@@ -507,7 +511,7 @@ towers = [
         rate: 20,
         range: blockSize*3,
         cost: 80,
-        slowDown: 0.7,
+        slowDown: 0.75,
         projectile: 'img/star.svg',
         descr: `Magic tower: single target <img src='img/star.svg' class='img__icon'> <br>Superpower <img src='img/smoke.svg' class='img__icon'> - slows enemies around self`
 
@@ -522,70 +526,9 @@ function drawTowers () {
     }
 }
 
+//Graphical user interface (GUI)
 
-
-//Functions
-
-function checkLvlIsComplete () {
-    if (wavesAreOver && createdEnemies.length == 0) {
-        msg = 'you have won!';
-        level[lvl].isComplete = true
-        stop()
-        btnNext.classList.remove('hide')
-        btnNext.classList.add('show')
-        music.src = 'audio/StrongHold.mp3'
-        playMusic()
-    }
-}
-
-function checkLives() {
-    if (!level[lvl].lives) {
-        msg = 'game over!';
-        stop();
-    }
-}
-
-function draw() {
-    drawMap()
-    drawTowers();
-    drawFlag();
-    drawEnemies();
-    createMsgField()
-}
-
-let idReqAnimFrame ;
-let stopGame;
-let isStopped
-
-function stop() {
-    stopGame = true
-    isStopped = true
-}
-
-function start() {
-    checkLives()
-    writeGuiParams()
-    isStopped = false
-
-    if (!stopGame) {
-        ctx.clearRect(0, 0, width, height);
-        draw();
-        if(!(countIntervalSec % 90) && !wavesAreOver) {
-            getWave(lvl, countWave)
-            countIntervalSec = 0
-        } else if (wavesAreOver) {
-            checkLvlIsComplete()
-        }
-        idReqAnimFrame = window.requestAnimationFrame(start)
-        countIntervalSec++
-    } else {
-        window.cancelAnimationFrame(idReqAnimFrame)
-        stopGame = false
-    }
-}
-
-
-//Create field Towers on GUI
+//Create field Towers in GUI
 const gui = document.querySelector('.gui')
 const guiTowers = document.querySelector('.gui__card-towers');
 
@@ -596,12 +539,10 @@ function drawGuiTowers() {
         item.id = i
         item.name = towers[i].name
 
-
         let itemImg = document.createElement('img');
         itemImg.src = towers[i].img
         itemImg.width = blockSize
         itemImg.classList.add('img');
-
 
         let descr = document.createElement('div'); //description 
         descr.classList.add('gui__descr')
@@ -615,7 +556,6 @@ function drawGuiTowers() {
         let descrSlowDown = document.createElement('div');
         descrSlowDown.textContent = 'slowDown '
         descrSlowDown.append(Math.floor((1 - towers[i].slowDown)*100) +'%')
-
 
         let cost = document.createElement('div') //cost 
         cost.classList.add('show');
@@ -631,14 +571,12 @@ function drawGuiTowers() {
         item.append(itemImg, descr, cost)
         guiTowers.append(item)
 
-       
     }
 }
 drawGuiTowers()
 
 
-
-//add listener to btns on GUI towers
+//add listener to btns in GUI towers
 
 let selectedTowerOnBtn = 0
 
@@ -647,7 +585,7 @@ guiTowers.addEventListener('click', (e) => {
     if (!btn || stopGame) return;
     msg = 'select location'
     selectedTowerOnBtn = btn.id
-    document.body.style.cursor = `url(../dist/img/${btn.name}.png) 10 10, auto`
+    document.body.style.cursor = `url(img/${btn.name}.png) 10 10, auto`
 }) 
 
 
@@ -660,7 +598,7 @@ canvas.addEventListener('click', (e) => {
     }
 })
 
-
+//build tower
 function putTower(e, id) {
     let corX = e.offsetX  - (e.offsetX % blockSize) //find start of tile
     let corY = e.offsetY - (e.offsetY % blockSize)
@@ -683,6 +621,7 @@ function putTower(e, id) {
     selectedTowerOnBtn = 0
 }
 
+//push new tower to createdTowers array
 function SelectTower(i, x, y) {
     let circle = new Path2D(); //tower.range
     circle.arc(x + halfBlockSize, y + halfBlockSize, towers[i].range, 0, Math.PI * 2)
@@ -694,7 +633,7 @@ function SelectTower(i, x, y) {
 }
 
 
-//Create field Parameters on GUI
+//Create Parameters in GUI
 
 const guiParams = document.querySelector('.gui__params');
 
@@ -720,37 +659,43 @@ function drawGuiParams() {
 
 drawGuiParams()
 
-function writeGuiParams() { //write current value
-    let lives = guiParams.querySelector('.lives')
-    lives.textContent = level[lvl].lives
-    let waves = guiParams.querySelector('.waves')
-    waves.textContent = `${countWave + 1}/${level[lvl].wave.length}`
-    let gold = guiParams.querySelector('.gold')
-    gold.textContent = level[lvl].gold
-    let name = guiMsg.querySelector('.gui__name')
-    name.textContent =  (document.querySelector('#text').value || 'Player') + ',' 
-    let message = guiMsg.querySelector('.gui__msg')
-    message.textContent = msg
-}
 
-//Create msg field in GUI
+//Draw gender image in GUI
 
 const guiMsg  = document.querySelector('.msg')
 let guiMsgImg = document.querySelector('.img__gender')
 let guiMsgName = document.querySelector('#text')
 
-function createMsgField() {
+function drawGenderImg() {
     guiMsgImg.src = document.querySelector('input[name="gender"]:checked').value;
     guiMsgImg.width = blockSize * 2
 }
 
-//Create settings on GUI
+//Write current values
+
+function writeGuiParams() { 
+    let lives = guiParams.querySelector('.lives')
+    lives.textContent = level[lvl].lives
+
+    let waves = guiParams.querySelector('.waves')
+    waves.textContent = `${countWave + 1}/${level[lvl].wave.length}`
+
+    let gold = guiParams.querySelector('.gold')
+    gold.textContent = level[lvl].gold
+
+    let name = guiMsg.querySelector('.gui__name')
+    name.textContent =  (document.querySelector('#text').value || 'Player') + ','
+
+    let message = guiMsg.querySelector('.gui__msg')
+    message.textContent = msg
+}
+
+//Create settings in GUI
 
 const btnPause = document.querySelector('.btn__pause');
 const btnStart = document.querySelector('.btn__start');
 const btnMusic = document.querySelector('.btn__music');
 const btnNext = document.querySelector('.btn__next');
-
 
 function getPause() {
     if (!isStopped) {
@@ -763,6 +708,7 @@ function getPause() {
         stop()
     }
 }
+
 function getStart() {
     btnStart.classList.remove('show')
     btnStart.classList.add('hide')
@@ -773,6 +719,7 @@ function getStart() {
     playMusic()
     start()
 }
+
 btnPause.addEventListener('click', getPause) 
 btnStart.addEventListener('click', getStart) 
 btnStart.classList.add('active')
@@ -787,6 +734,7 @@ btnMusic.addEventListener('click', () => {
     }
     playMusic()
 })
+
 function playMusic() {
     if(musicPlaying) {
         music.play()
@@ -803,32 +751,40 @@ btnNext.addEventListener('click', () => { //click to start new lvl
         createdEnemies = []
         countWave = 0
         wavesAreOver = false
-        lvl ++
-        music.src = 'audio/Combat04.mp3'
-        playMusic()
-        start()
+        if (lvl + 1 < level.length) {
+            lvl ++
+            music.src = 'audio/Combat04.mp3'
+            playMusic()
+            start()
+        } else { //close game and open last slide
+            music.src = 'audio/StrongHold.mp3'
+            playMusic()
+            game.classList.remove('show')
+            game.classList.add('hide')
+            lastSlide.classList.remove('hide')
+            lastSlide.classList.add('show')
+        }
     }
 } ) 
 btnNext.classList.add('active')
 
-//Main menu
+//Main menu. Instruction
 
 let menuTitle = document.querySelector('.menu__title')
-const menuEnemies = document.querySelector('.menu__wrapper-enemies')
 const menuTowers = document.querySelector('.menu__wrapper-towers')
 
-
-
+//Add description about towers
 function drawMenuItems() {
     for (let i = 0; i < towers.length; i++) {
-    let name = 'menu__item'
+
     let item = document.createElement('div')
-    item.classList.add('menu__item', name)
+    item.classList.add('menu__item')
+
     let itemImg = document.createElement('img')
     itemImg.src = towers[i].img
     itemImg.width = blockSize*1.5
-    let itemDescr = document.createElement('div')
 
+    let itemDescr = document.createElement('div')
     itemDescr.innerHTML = towers[i].descr
 
     item.append(itemImg, itemDescr)
@@ -840,5 +796,63 @@ function drawMenuItems() {
 drawMenuItems()
 
 
+//Checking game parameters
+
+function checkLvlIsComplete () {
+    if (wavesAreOver && createdEnemies.length == 0) {
+        msg = 'you have won!';
+        level[lvl].isComplete = true
+        stop()
+        btnNext.classList.remove('hide')
+        btnNext.classList.add('show')
+        music.src = 'audio/StrongHold.mp3'
+        playMusic()
+    }
+}
+
+function checkLives() {
+    if (!level[lvl].lives) {
+        msg = 'game over!';
+        stop();
+    }
+}
+
+let idReqAnimFrame;
+let stopGame;
+let isStopped;
+let countIntervalSec = 0;
 
 
+function draw() { //draw elements on canvas
+    drawMap()
+    drawTowers();
+    drawFlag();
+    drawEnemies();
+}
+
+function start() { //start requestAnimationFrame
+    checkLives()
+    writeGuiParams() //write the current parameters of this level
+    isStopped = false
+
+    if (!stopGame) {
+        ctx.clearRect(0, 0, width, height);
+        draw();
+        if(!(countIntervalSec % 90) && !wavesAreOver) {
+            getWave(lvl, countWave)
+            countIntervalSec = 0
+        } else if (wavesAreOver) {
+            checkLvlIsComplete()
+        }
+        idReqAnimFrame = window.requestAnimationFrame(start)
+        countIntervalSec++
+    } else {
+        window.cancelAnimationFrame(idReqAnimFrame)
+        stopGame = false
+    }
+}
+
+function stop() {
+    stopGame = true
+    isStopped = true
+}
